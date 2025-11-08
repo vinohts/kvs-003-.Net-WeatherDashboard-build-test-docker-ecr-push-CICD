@@ -1,0 +1,28 @@
+﻿@page
+@model WeatherDashboardCICD.Pages.IndexModel
+@{
+    ViewData["Title"] = "Weather Dashboard";
+}
+
+<div class="container mt-4">
+    <h1 class="text-center mb-4">🌦️ Simple Weather Dashboard</h1>
+    <table class="table table-striped text-center">
+        <thead class="table-dark">
+            <tr>
+                <th>City</th>
+                <th>Temperature (°C)</th>
+                <th>Condition</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model.WeatherList)
+        {
+            <tr>
+                <td>@item.City</td>
+                <td>@item.TemperatureC</td>
+                <td>@item.Condition</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
