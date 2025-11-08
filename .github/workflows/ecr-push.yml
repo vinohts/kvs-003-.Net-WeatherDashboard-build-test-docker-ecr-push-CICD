@@ -1,0 +1,56 @@
+name: Manual Build and Push Docker Image to ECR
+
+# 👇 Manual trigger only
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build .NET Project
+        run: |
+          dotnet restore
+          dotnet publish -c Release -o out
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Create ECR repository if it does not exist
+        run: |
+          aws ecr describe-repositories --repository-names ${{ secrets.ECR_REPOSITORY }} --region ${{ secrets.AWS_REGION }} || \
+          aws ecr create-repository --repository-name ${{ secrets.ECR_REPOSITORY }} --region ${{ secrets.AWS_REGION }}
+
+      - name: Build, Tag, and Push Docker Image
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        run: |
+          IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+          echo "Building Docker image..."
+          docker build -t $ECR_REPOSITORY .
+          echo "Tagging image..."
+          docker tag $ECR_REPOSITORY:latest $IMAGE_URI
+          echo "Pushing image..."
+          docker push $IMAGE_URI
+          echo "✅ Image pushed successfully to ECR: $IMAGE_URI"
+
+          # end of script
